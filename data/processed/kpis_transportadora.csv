@@ -1,0 +1,6 @@
+transportadora_id,nome,tipo,viagens,pct_on_time,lead_time_medio_h,atraso_medio_h,custo_medio_km,custo_total_frete,pct_ocorrencia,custo_total_ocorrencias,custo_total_geral
+2,TransRápido Sul,Terceirizada,1885,0.6886,35.51,2.15,3.4,10689078.93,0.1448,1232260.41,11921339.34
+4,Rodovias Brasil Cargas,Terceirizada,1838,0.8025,39.14,1.85,3.89,13107823.45,0.0947,733658.11,13841481.56
+1,Frota Própria,Própria,2516,0.9865,35.18,0.83,4.21,18147413.43,0.068,594842.46,18742255.89
+5,TransNorte Pesados,Terceirizada,1542,0.7704,43.58,2.17,4.6,14487161.04,0.1187,635630.63,15122791.67
+3,LogExpress Nacional,Terceirizada,1558,1.0,36.46,0.57,5.09,14098042.03,0.0424,292261.49,14390303.52

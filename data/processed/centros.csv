@@ -1,0 +1,7 @@
+cd_id,nome,uf,regiao
+1,São Paulo,SP,Sudeste
+2,Rio de Janeiro,RJ,Sudeste
+3,Curitiba,PR,Sul
+4,Salvador,BA,Nordeste
+5,Goiânia,GO,Centro-Oeste
+6,Manaus,AM,Norte

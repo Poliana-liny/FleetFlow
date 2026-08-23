@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FleetFlow — Custo x Confiabilidade no Transporte CD-a-CD</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --asphalt-900: #14171a;
+    --asphalt-800: #1a1e23;
+    --asphalt-700: #21262d;
+    --asphalt-600: #2c333c;
+    --steel-400: #5f9bc7;
+    --steel-300: #8ab8db;
+    --signal-500: #e8a33d;
+    --signal-300: #f0c274;
+    --alert-500: #b5432f;
+    --alert-400: #d15a42;
+    --paper-100: #eef1f3;
+    --paper-300: #b9c2c9;
+    --paper-500: #7c8790;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--asphalt-900);
+    color: var(--paper-100);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+  }
+
+  h1, h2, h3, .display {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin: 0;
+  }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    padding: 64px 24px 40px;
+    max-width: 1180px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .eyebrow {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.12em;
+    color: var(--signal-500);
+    border: 1px solid rgba(232, 163, 61, 0.4);
+    border-radius: 3px;
+    padding: 4px 12px;
+    margin-bottom: 22px;
+    text-transform: uppercase;
+  }
+
+  .hero h1 {
+    font-size: clamp(34px, 6vw, 60px);
+    font-weight: 700;
+    color: var(--paper-100);
+    line-height: 1.05;
+  }
+
+  .hero h1 span { color: var(--signal-500); }
+
+  .hero p.subtitle {
+    max-width: 720px;
+    margin: 22px auto 0;
+    font-size: 17px;
+    color: var(--paper-300);
+    font-weight: 400;
+  }
+
+  /* highway lane divider — signature element */
+  .lane-divider {
+    position: relative;
+    height: 6px;
+    margin: 44px auto 0;
+    max-width: 640px;
+    overflow: hidden;
+  }
+  .lane-divider::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 200%;
+    height: 4px;
+    transform: translateY(-50%);
+    background-image: repeating-linear-gradient(
+      to right,
+      var(--signal-500) 0px,
+      var(--signal-500) 34px,
+      transparent 34px,
+      transparent 64px
+    );
+    animation: drive 2.4s linear infinite;
+  }
+  @keyframes drive {
+    from { transform: translate(0, -50%); }
+    to   { transform: translate(-64px, -50%); }
+  }
+
+  /* ---------- KPI strip ---------- */
+  .kpi-strip {
+    max-width: 1180px;
+    margin: 48px auto 0;
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+  }
+
+  .kpi-card {
+    background: var(--asphalt-700);
+    border: 1px solid var(--asphalt-600);
+    border-top: 3px solid var(--signal-500);
+    border-radius: 6px;
+    padding: 18px 16px;
+  }
+
+  .kpi-card .value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--paper-100);
+  }
+
+  .kpi-card .label {
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: var(--paper-500);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- Sections ---------- */
+  section.block {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 56px 24px 0;
+  }
+
+  .block-head { max-width: 760px; margin-bottom: 28px; }
+
+  .block-head .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--steel-300);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .block-head h2 {
+    font-size: 26px;
+    color: var(--paper-100);
+    font-weight: 600;
+  }
+
+  .block-head p {
+    color: var(--paper-300);
+    font-size: 15px;
+    margin-top: 10px;
+  }
+
+  .panel {
+    background: var(--asphalt-700);
+    border: 1px solid var(--asphalt-600);
+    border-radius: 8px;
+    padding: 24px;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 20px;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .legend-row {
+    display: flex;
+    gap: 18px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--paper-300);
+  }
+  .legend-row .dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  .insight-box {
+    background: rgba(232, 163, 61, 0.08);
+    border: 1px solid rgba(232, 163, 61, 0.3);
+    border-radius: 6px;
+    padding: 14px 16px;
+    font-size: 14px;
+    color: var(--paper-100);
+    margin-top: 16px;
+  }
+  .insight-box b { color: var(--signal-500); }
+
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  table.data-table th {
+    text-align: left;
+    color: var(--paper-500);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--asphalt-600);
+  }
+  table.data-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--paper-100);
+  }
+  table.data-table tr.own td { color: var(--steel-300); }
+
+  footer {
+    max-width: 1180px;
+    margin: 64px auto 0;
+    padding: 28px 24px 48px;
+    border-top: 1px solid var(--asphalt-600);
+    color: var(--paper-500);
+    font-size: 13px;
+    text-align: center;
+  }
+
+  @media (max-width: 900px) {
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <span class="eyebrow">FleetFlow · Transporte CD-a-CD</span>
+  <h1>A transportadora mais barata<br>é a mais barata <span>de verdade?</span></h1>
+  <p class="subtitle">
+    9.339 viagens entre 6 Centros de Distribuição, frota mista (própria +
+    4 transportadoras terceirizadas), 6 meses de operação. Comparando
+    custo, pontualidade e ocorrências para responder o que a cotação de
+    frete sozinha não mostra.
+  </p>
+  <div class="lane-divider"></div>
+</div>
+
+<div class="kpi-strip">
+  <div class="kpi-card">
+    <div class="value" id="kpi-viagens">—</div>
+    <div class="label">Viagens no período</div>
+  </div>
+  <div class="kpi-card">
+    <div class="value" id="kpi-ontime">—</div>
+    <div class="label">% On Time geral</div>
+  </div>
+  <div class="kpi-card">
+    <div class="value" id="kpi-frete">—</div>
+    <div class="label">Custo total de frete</div>
+  </div>
+  <div class="kpi-card" style="border-top-color: var(--alert-500);">
+    <div class="value" id="kpi-ocorrencias-custo">—</div>
+    <div class="label">Custo de ocorrências</div>
+  </div>
+  <div class="kpi-card" style="border-top-color: var(--alert-500);">
+    <div class="value" id="kpi-ocorrencias-n">—</div>
+    <div class="label">Ocorrências registradas</div>
+  </div>
+</div>
+
+<!-- ================= Custo x Confiabilidade ================= -->
+<section class="block">
+  <div class="block-head">
+    <span class="kicker">01 — O trade-off central</span>
+    <h2>Custo por km x % On Time</h2>
+    <p>Cada bolha é uma transportadora — o tamanho representa o volume de
+    viagens. O eixo X já inclui o custo das ocorrências amortizado
+    (custo "efetivo"), não só o valor cobrado no frete.</p>
+  </div>
+  <div class="panel">
+    <canvas id="chartScatter" height="105"></canvas>
+    <div class="legend-row">
+      <span><span class="dot" style="background:var(--steel-400)"></span>Frota Própria</span>
+      <span><span class="dot" style="background:var(--alert-400)"></span>Terceirizadas</span>
+    </div>
+    <div class="insight-box" id="insight-scatter"></div>
+  </div>
+</section>
+
+<!-- ================= Ocorrências por tipo ================= -->
+<section class="block">
+  <div class="block-head">
+    <span class="kicker">02 — Onde o custo escondido mora</span>
+    <h2>Ocorrências por tipo e transportadora</h2>
+    <p>Avarias, atrasos por manutenção e sinistros — discriminados por
+    transportadora, para ver quem concentra qual tipo de problema.</p>
+  </div>
+  <div class="panel">
+    <canvas id="chartOcorrencias" height="110"></canvas>
+  </div>
+</section>
+
+<!-- ================= Regiões ================= -->
+<section class="block">
+  <div class="block-head">
+    <span class="kicker">03 — Nem toda rota é igual</span>
+    <h2>Sudeste/Sul/Centro-Oeste x Norte/Nordeste</h2>
+    <p>O SLA já é calibrado pela velocidade média mais baixa das rotas
+    difíceis — por isso o % on time fica parecido. A diferença real
+    aparece em outro lugar.</p>
+  </div>
+  <div class="panel">
+    <div class="grid-3" id="regiaoCharts">
+      <div><canvas id="chartRegOnTime" height="180"></canvas></div>
+      <div><canvas id="chartRegLead" height="180"></canvas></div>
+      <div><canvas id="chartRegOcorr" height="180"></canvas></div>
+    </div>
+    <div class="insight-box" id="insight-regiao"></div>
+  </div>
+</section>
+
+<!-- ================= Rotas e custo efetivo ================= -->
+<section class="block">
+  <div class="block-head">
+    <span class="kicker">04 — Onde agir primeiro</span>
+    <h2>Piores rotas e ranking de custo efetivo</h2>
+  </div>
+  <div class="grid-2">
+    <div class="panel">
+      <h3 style="font-size:14px; color:var(--paper-300); margin-bottom:14px; text-transform:none; font-family:Inter;">Rotas com pior pontualidade</h3>
+      <canvas id="chartRotas" height="230"></canvas>
+    </div>
+    <div class="panel">
+      <h3 style="font-size:14px; color:var(--paper-300); margin-bottom:14px; text-transform:none; font-family:Inter;">Ranking de custo efetivo (R$/km)</h3>
+      <table class="data-table" id="tabelaCusto">
+        <thead><tr><th>Transportadora</th><th>R$/km</th><th>% On Time</th><th>% Ocorr.</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Dados 100% fictícios, gerados para fins de portfólio — projeto FleetFlow.
+  Pipeline completo (geração de dados → ETL → SQL → storytelling → dashboard) disponível no repositório.
+</footer>
+
+<script>
+const DATA = {"resumo": {"total_viagens": 9339, "total_ocorrencias": 867, "custo_total_frete": 70529518.88, "custo_total_ocorrencias": 3488653.0999999996, "pct_on_time_geral": 0.856729842595567}, "transportadoras": [{"nome": "TransRápido Sul", "tipo": "Terceirizada", "viagens": 1885, "pct_on_time": 0.6886, "custo_medio_km": 3.4, "custo_efetivo_km": 3.79, "pct_ocorrencia": 0.1448, "custo_total_frete": 10689078.93, "custo_total_ocorrencias": 1232260.41, "custo_total_geral": 11921339.34}, {"nome": "Rodovias Brasil Cargas", "tipo": "Terceirizada", "viagens": 1838, "pct_on_time": 0.8025, "custo_medio_km": 3.89, "custo_efetivo_km": 4.09, "pct_ocorrencia": 0.0947, "custo_total_frete": 13107823.45, "custo_total_ocorrencias": 733658.11, "custo_total_geral": 13841481.56}, {"nome": "Frota Própria", "tipo": "Própria", "viagens": 2516, "pct_on_time": 0.9865, "custo_medio_km": 4.21, "custo_efetivo_km": 4.35, "pct_ocorrencia": 0.068, "custo_total_frete": 18147413.43, "custo_total_ocorrencias": 594842.46, "custo_total_geral": 18742255.89}, {"nome": "TransNorte Pesados", "tipo": "Terceirizada", "viagens": 1542, "pct_on_time": 0.7704, "custo_medio_km": 4.6, "custo_efetivo_km": 4.8, "pct_ocorrencia": 0.1187, "custo_total_frete": 14487161.04, "custo_total_ocorrencias": 635630.63, "custo_total_geral": 15122791.67}, {"nome": "LogExpress Nacional", "tipo": "Terceirizada", "viagens": 1558, "pct_on_time": 1.0, "custo_medio_km": 5.09, "custo_efetivo_km": 5.2, "pct_ocorrencia": 0.0424, "custo_total_frete": 14098042.03, "custo_total_ocorrencias": 292261.49, "custo_total_geral": 14390303.52}], "regioes": [{"regiao_dificil": "Sudeste/Sul/Centro-Oeste", "viagens": 3991, "pct_on_time": 0.8527, "lead_time_medio_h": 14.45, "atraso_medio_h": 0.61, "pct_ocorrencia": 0.0754, "custo_medio_km": 4.17}, {"regiao_dificil": "Norte/Nordeste", "viagens": 5348, "pct_on_time": 0.8598, "lead_time_medio_h": 54.92, "atraso_medio_h": 2.12, "pct_ocorrencia": 0.1058, "custo_medio_km": 4.21}], "rotas": [{"rota_nome": "São Paulo → Goiânia", "regiao_dificil": false, "pct_on_time": 0.8309, "lead_time_medio_h": 16.29, "pct_ocorrencia": 0.0697, "viagens": 976, "distancia_km": 900}, {"rota_nome": "Curitiba → Goiânia", "regiao_dificil": false, "pct_on_time": 0.8375, "lead_time_medio_h": 22.54, "pct_ocorrencia": 0.0812, "viagens": 911, "distancia_km": 1250}, {"rota_nome": "Salvador → Goiânia", "regiao_dificil": true, "pct_on_time": 0.8402, "lead_time_medio_h": 32.52, "pct_ocorrencia": 0.1216, "viagens": 732, "distancia_km": 1500}, {"rota_nome": "Salvador → Manaus", "regiao_dificil": true, "pct_on_time": 0.8435, "lead_time_medio_h": 71.58, "pct_ocorrencia": 0.0928, "viagens": 690, "distancia_km": 3300}, {"rota_nome": "Rio de Janeiro → Manaus", "regiao_dificil": true, "pct_on_time": 0.8523, "lead_time_medio_h": 84.47, "pct_ocorrencia": 0.102, "viagens": 765, "distancia_km": 3900}, {"rota_nome": "Goiânia → Manaus", "regiao_dificil": true, "pct_on_time": 0.8563, "lead_time_medio_h": 42.27, "pct_ocorrencia": 0.1126, "viagens": 675, "distancia_km": 1950}, {"rota_nome": "Rio de Janeiro → Curitiba", "regiao_dificil": false, "pct_on_time": 0.8611, "lead_time_medio_h": 15.29, "pct_ocorrencia": 0.0796, "viagens": 691, "distancia_km": 850}, {"rota_nome": "São Paulo → Curitiba", "regiao_dificil": false, "pct_on_time": 0.8625, "lead_time_medio_h": 7.42, "pct_ocorrencia": 0.0702, "viagens": 698, "distancia_km": 410}, {"rota_nome": "Rio de Janeiro → Salvador", "regiao_dificil": true, "pct_on_time": 0.8698, "lead_time_medio_h": 35.86, "pct_ocorrencia": 0.0983, "viagens": 814, "distancia_km": 1650}, {"rota_nome": "São Paulo → Manaus", "regiao_dificil": true, "pct_on_time": 0.8744, "lead_time_medio_h": 75.8, "pct_ocorrencia": 0.1085, "viagens": 820, "distancia_km": 3500}, {"rota_nome": "São Paulo → Salvador", "regiao_dificil": true, "pct_on_time": 0.8756, "lead_time_medio_h": 42.27, "pct_ocorrencia": 0.1056, "viagens": 852, "distancia_km": 1960}, {"rota_nome": "São Paulo → Rio de Janeiro", "regiao_dificil": false, "pct_on_time": 0.8839, "lead_time_medio_h": 7.67, "pct_ocorrencia": 0.0769, "viagens": 715, "distancia_km": 430}], "ocorrencias_matrix": {"Frota Própria": {"Atraso por Manutenção": 58, "Avaria": 88, "Sinistro": 25}, "LogExpress Nacional": {"Atraso por Manutenção": 19, "Avaria": 38, "Sinistro": 9}, "Rodovias Brasil Cargas": {"Atraso por Manutenção": 47, "Avaria": 97, "Sinistro": 30}, "TransNorte Pesados": {"Atraso por Manutenção": 64, "Avaria": 92, "Sinistro": 27}, "TransRápido Sul": {"Atraso por Manutenção": 92, "Avaria": 135, "Sinistro": 46}}, "volume_mensal": [{"ano_mes": "2025-01", "viagens": 1554}, {"ano_mes": "2025-02", "viagens": 1409}, {"ano_mes": "2025-03", "viagens": 1641}, {"ano_mes": "2025-04", "viagens": 1537}, {"ano_mes": "2025-05", "viagens": 1599}, {"ano_mes": "2025-06", "viagens": 1599}]};
+
+function fmtPct(v) { return (v * 100).toFixed(1) + '%'; }
+function fmtMoneyShort(v) {
+  if (v >= 1e6) return 'R$ ' + (v / 1e6).toFixed(1) + 'M';
+  if (v >= 1e3) return 'R$ ' + (v / 1e3).toFixed(0) + 'k';
+  return 'R$ ' + v.toFixed(0);
+}
+
+// ---------- KPI strip ----------
+document.getElementById('kpi-viagens').textContent = DATA.resumo.total_viagens.toLocaleString('pt-BR');
+document.getElementById('kpi-ontime').textContent = fmtPct(DATA.resumo.pct_on_time_geral);
+document.getElementById('kpi-frete').textContent = fmtMoneyShort(DATA.resumo.custo_total_frete);
+document.getElementById('kpi-ocorrencias-custo').textContent = fmtMoneyShort(DATA.resumo.custo_total_ocorrencias);
+document.getElementById('kpi-ocorrencias-n').textContent = DATA.resumo.total_ocorrencias.toLocaleString('pt-BR');
+
+Chart.defaults.color = '#b9c2c9';
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+
+const STEEL = '#5f9bc7';
+const ALERT = '#d15a42';
+const SIGNAL = '#e8a33d';
+
+// ---------- 1. Scatter custo x confiabilidade ----------
+const transp = DATA.transportadoras;
+new Chart(document.getElementById('chartScatter'), {
+  type: 'bubble',
+  data: {
+    datasets: transp.map(t => ({
+      label: t.nome,
+      data: [{ x: t.custo_efetivo_km, y: t.pct_on_time * 100, r: Math.sqrt(t.viagens) / 2.6 }],
+      backgroundColor: t.tipo === 'Própria' ? STEEL + 'cc' : ALERT + 'cc',
+      borderColor: t.tipo === 'Própria' ? STEEL : ALERT,
+      borderWidth: 1.5,
+    }))
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => `${ctx.dataset.label}: R$${ctx.raw.x}/km, ${ctx.raw.y.toFixed(1)}% on time`
+        }
+      }
+    },
+    scales: {
+      x: { title: { display: true, text: 'Custo efetivo por km (R$)' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { title: { display: true, text: '% On Time' }, min: 60, max: 105, grid: { color: 'rgba(255,255,255,0.05)' } },
+    }
+  }
+});
+
+const barata = transp.reduce((a, b) => a.custo_efetivo_km < b.custo_efetivo_km ? a : b);
+const confiavel = transp.reduce((a, b) => a.pct_on_time > b.pct_on_time ? a : b);
+document.getElementById('insight-scatter').innerHTML =
+  `<b>${barata.nome}</b> é a opção mais barata (R$${barata.custo_efetivo_km}/km efetivo), mas entrega só ${fmtPct(barata.pct_on_time)} on time. ` +
+  `<b>${confiavel.nome}</b> custa R$${confiavel.custo_efetivo_km}/km — quase o dobro — mas entrega ${fmtPct(confiavel.pct_on_time)} de pontualidade.`;
+
+// ---------- 2. Ocorrências por tipo (stacked) ----------
+const nomesTransp = Object.keys(DATA.ocorrencias_matrix);
+const tipos = ['Avaria', 'Atraso por Manutenção', 'Sinistro'];
+const coresTipo = [SIGNAL, ALERT, '#7f1d1d'];
+new Chart(document.getElementById('chartOcorrencias'), {
+  type: 'bar',
+  data: {
+    labels: nomesTransp,
+    datasets: tipos.map((tipo, i) => ({
+      label: tipo,
+      data: nomesTransp.map(n => DATA.ocorrencias_matrix[n][tipo] || 0),
+      backgroundColor: coresTipo[i],
+    }))
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'bottom' } },
+    scales: {
+      x: { stacked: true, grid: { display: false } },
+      y: { stacked: true, title: { display: true, text: 'Nº de ocorrências' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+    }
+  }
+});
+
+// ---------- 3. Regiões ----------
+const regioes = DATA.regioes;
+const labelsReg = regioes.map(r => r.regiao_dificil);
+const coresReg = [STEEL, ALERT];
+
+function miniBar(canvasId, campo, titulo, pct) {
+  new Chart(document.getElementById(canvasId), {
+    type: 'bar',
+    data: {
+      labels: labelsReg,
+      datasets: [{ data: regioes.map(r => pct ? r[campo] * 100 : r[campo]), backgroundColor: coresReg }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false }, title: { display: true, text: titulo, color: '#eef1f3', font: { size: 13 } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' } },
+      }
+    }
+  });
+}
+miniBar('chartRegOnTime', 'pct_on_time', '% On Time', true);
+miniBar('chartRegLead', 'lead_time_medio_h', 'Lead time médio (h)', false);
+miniBar('chartRegOcorr', 'pct_ocorrencia', '% Ocorrência', true);
+
+const facil = regioes.find(r => r.regiao_dificil.includes('Sudeste'));
+const dificil = regioes.find(r => r.regiao_dificil.includes('Norte'));
+const deltaOcorr = ((dificil.pct_ocorrencia / facil.pct_ocorrencia - 1) * 100).toFixed(0);
+document.getElementById('insight-regiao').innerHTML =
+  `% on time é parecido entre as regiões (${fmtPct(facil.pct_on_time)} x ${fmtPct(dificil.pct_on_time)}), mas a <b>taxa de ocorrência é ${deltaOcorr}% maior</b> no Norte/Nordeste — reflexo de estrada e distância a pontos de manutenção, não de atraso.`;
+
+// ---------- 4. Piores rotas ----------
+const rotas = DATA.rotas.slice(0, 6);
+new Chart(document.getElementById('chartRotas'), {
+  type: 'bar',
+  data: {
+    labels: rotas.map(r => r.rota_nome),
+    datasets: [{
+      data: rotas.map(r => r.pct_on_time * 100),
+      backgroundColor: rotas.map(r => r.regiao_dificil ? ALERT : STEEL),
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { title: { display: true, text: '% On Time' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { grid: { display: false } },
+    }
+  }
+});
+
+// ---------- Tabela custo efetivo ----------
+const tbody = document.querySelector('#tabelaCusto tbody');
+[...transp].sort((a, b) => a.custo_efetivo_km - b.custo_efetivo_km).forEach(t => {
+  const tr = document.createElement('tr');
+  if (t.tipo === 'Própria') tr.className = 'own';
+  tr.innerHTML = `<td>${t.nome}</td><td class="mono">R$ ${t.custo_efetivo_km.toFixed(2)}</td><td class="mono">${fmtPct(t.pct_on_time)}</td><td class="mono">${fmtPct(t.pct_ocorrencia)}</td>`;
+  tbody.appendChild(tr);
+});
+</script>
+
+</body>
+</html>
