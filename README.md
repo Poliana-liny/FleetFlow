@@ -337,7 +337,7 @@ Para a modelagem em SQL, veja a seção [Modelagem SQL](#modelagem-sql)
 
 ## Sobre a autora
 
-Projeto desenvolvido por **Poliana Lins** como parte de um portfólio de
+Projeto desenvolvido por **Poliana Liny** como parte de um portfólio de
 análise de dados, cobrindo o ciclo completo: geração e engenharia de
 dados, ETL, modelagem em SQL, análise de negócio com storytelling
 comparativo, e construção de dashboard interativo.
